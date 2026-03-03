@@ -102,8 +102,8 @@
         setTimeout(() => { if (loaded < 2) fallback("no tiles loaded"); }, 2000);
       }
 
-      // Start on the safest (OSM Light)
-      useProvider(0);
+      // Start on Esri Dark Gray (requested default)
+      useProvider(3);
 
       map.setView([39.5, -98.35], 4); // USA center
 
@@ -190,10 +190,10 @@
           <label><input type="checkbox" id="cbDaylight" checked> Daylight</label>
           <hr style="border:none;border-top:1px solid rgba(255,255,255,.1); margin:.4rem 0" />
           <div style="margin-bottom:.2rem; opacity:.8">Basemap</div>
-          <label><input type="radio" name="bm" id="bm0" checked> OSM Light</label>
+          <label><input type="radio" name="bm" id="bm0"> OSM Light</label>
           <label><input type="radio" name="bm" id="bm1"> Esri Light Gray</label>
           <label><input type="radio" name="bm" id="bm2"> Carto Light</label>
-          <label><input type="radio" name="bm" id="bm3"> Esri Dark Gray</label>
+          <label><input type="radio" name="bm" id="bm3" checked> Esri Dark Gray</label>
         `;
         return div;
       };
@@ -237,7 +237,7 @@
         function next() {
           if (done) return;
           if (tryInit()) { done = true; return showStatus("Daylight overlay active"); }
-          if (k >= srcs.length) { 
+          if (k >= srcs.length) {
             const cbDay = document.getElementById('cbDaylight');
             cbDay.checked = false; cbDay.disabled = true;
             return showStatus("Daylight overlay unavailable (plugin blocked).", true);
