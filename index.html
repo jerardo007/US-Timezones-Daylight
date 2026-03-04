@@ -1,16 +1,28 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>US Time Zones + Live Daylight</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US Time Zones</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-html,body{height:100%;margin:0;background:#0b0f14;}
-#map{width:100%;height:100vh;}
-.leaflet-control.attribution{display:none;}
+
+html,body{
+height:100%;
+margin:0;
+background:#0b0f14;
+}
+
+#map{
+width:100%;
+height:100vh;
+}
+
+.leaflet-control-attribution{
+display:none;
+}
 
 .panel{
 background:rgba(20,24,28,.92);
@@ -19,6 +31,12 @@ padding:.6rem .8rem;
 border-radius:.75rem;
 box-shadow:0 6px 18px rgba(0,0,0,.35);
 font:14px system-ui;
+}
+
+.clock .row{
+display:flex;
+justify-content:space-between;
+gap:1rem;
 }
 
 .legend .row{
@@ -35,14 +53,6 @@ border-radius:3px;
 border:1px solid rgba(255,255,255,.15);
 }
 
-.clock .row{
-display:flex;
-justify-content:space-between;
-gap:1rem;
-}
-
-.toggle label{display:block;margin:.18rem 0;}
-
 .credit{
 position:absolute;
 bottom:8px;
@@ -54,6 +64,7 @@ padding:4px 8px;
 border-radius:8px;
 font:12px system-ui;
 }
+
 </style>
 </head>
 
@@ -69,65 +80,19 @@ Built with <a href="https://leafletjs.com/" target="_blank">Leaflet</a>
 
 <script>
 
-const map=L.map("map",{zoomControl:true,worldCopyJump:true})
+const map = L.map("map",{zoomControl:true})
 
-/* Basemap providers */
-
-const PROVIDERS=[
-{
-key:"OSM Light",
-layer:L.tileLayer(
-"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-{maxZoom:7,minZoom:2}
-)
-},
-
-{
-key:"Esri Light Gray",
-layer:L.tileLayer(
-"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-{maxZoom:7,minZoom:2}
-)
-},
-
-{
-key:"Carto Light",
-layer:L.tileLayer(
-"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-{maxZoom:7,minZoom:2,subdomains:"abcd"}
-)
-},
-
-{
-key:"Esri Dark Gray",
-layer:L.tileLayer(
+const esriDark = L.tileLayer(
 "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
 {maxZoom:7,minZoom:2}
 )
-}
-]
 
-function useProvider(i){
-PROVIDERS.forEach(p=>map.removeLayer(p.layer))
-PROVIDERS[i].layer.addTo(map)
-}
-
-/* Default basemap = ESRI DARK */
-
-useProvider(3)
+esriDark.addTo(map)
 
 map.setView([39.5,-98.35],4)
 
-/* Timezone polygons */
-
 function rect(w,e,s,n){
-return[
-[s,w],
-[s,e],
-[n,e],
-[n,w],
-[s,w]
-]
+return [[s,w],[s,e],[n,e],[n,w],[s,w]]
 }
 
 const SOUTH=24
@@ -135,17 +100,14 @@ const NORTH=49.5
 
 const zones=[
 
-{key:"PT",name:"Pacific",tz:"America/Los_Angeles",color:"#fb9a99",poly:rect(-125,-114,SOUTH,NORTH)},
-{key:"MT",name:"Mountain",tz:"America/Denver",color:"#fdbf6f",poly:rect(-114,-103.5,SOUTH,NORTH)},
-{key:"CT",name:"Central",tz:"America/Chicago",color:"#cab2d6",poly:rect(-103.5,-90.5,SOUTH,NORTH)},
-{key:"ET",name:"Eastern",tz:"America/New_York",color:"#ffff99",poly:rect(-90.5,-66.9,SOUTH,NORTH)}
+{name:"Pacific",color:"#fb9a99",poly:rect(-125,-114,SOUTH,NORTH)},
+{name:"Mountain",color:"#fdbf6f",poly:rect(-114,-103.5,SOUTH,NORTH)},
+{name:"Central",color:"#cab2d6",poly:rect(-103.5,-90.5,SOUTH,NORTH)},
+{name:"Eastern",color:"#ffff99",poly:rect(-90.5,-66.9,SOUTH,NORTH)}
 
 ]
 
-const tzLayer=L.layerGroup()
-
 zones.forEach(z=>{
-
 L.polygon(z.poly,{
 color:"#9aa4ad",
 weight:1,
@@ -153,14 +115,9 @@ opacity:.6,
 fillColor:z.color,
 fillOpacity:.28
 })
-.bindTooltip(`<b>${z.name}</b><br>${z.key}`)
-.addTo(tzLayer)
-
+.bindTooltip(`<b>${z.name}</b>`)
+.addTo(map)
 })
-
-tzLayer.addTo(map)
-
-/* CLOCK */
 
 const clock=L.control({position:"topright"})
 
@@ -181,25 +138,18 @@ return div
 clock.addTo(map)
 
 function fmt(tz){
-return new Date().toLocaleTimeString(
-[],
-{timeZone:tz}
-)
+return new Date().toLocaleTimeString([],{timeZone:tz})
 }
 
 function tick(){
-
-tET.textContent=fmt("America/New_York")
-tCT.textContent=fmt("America/Chicago")
-tMT.textContent=fmt("America/Denver")
-tPT.textContent=fmt("America/Los_Angeles")
-
+document.getElementById("tET").textContent=fmt("America/New_York")
+document.getElementById("tCT").textContent=fmt("America/Chicago")
+document.getElementById("tMT").textContent=fmt("America/Denver")
+document.getElementById("tPT").textContent=fmt("America/Los_Angeles")
 }
 
 tick()
 setInterval(tick,1000)
-
-/* LEGEND */
 
 const legend=L.control({position:"bottomleft"})
 
@@ -219,7 +169,7 @@ return div
 
 legend.addTo(map)
 
-/* METEOR LOGO CONTROL */
+/* LOGO */
 
 const logo=L.control({position:"topleft"})
 
@@ -227,11 +177,11 @@ logo.onAdd=function(){
 
 const div=L.DomUtil.create("div")
 
-div.style.marginLeft="50px"
+div.style.marginLeft="55px"
 div.style.marginTop="10px"
 
 div.innerHTML=`
-<img src="Meteor Symbol curves red.png"
+<img src="Meteor-Symbol-curves-red.png"
 style="
 width:70px;
 opacity:.9;
