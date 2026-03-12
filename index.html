@@ -25,11 +25,6 @@ html,body{
   font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 
-/* make the basemap itself darker so the ocean matches Notion dark mode better */
-.leaflet-tile{
-  filter:brightness(.42) contrast(1.18) saturate(.78);
-}
-
 .leaflet-control-attribution{
   display:none;
 }
@@ -124,7 +119,8 @@ const darkBase = L.tileLayer(
   {
     subdomains:"abcd",
     maxZoom:20,
-    minZoom:2
+    minZoom:2,
+    opacity:0.68
   }
 )
 
@@ -212,14 +208,13 @@ legend.onAdd=function(){
 legend.addTo(map)
 
 /* LOGO */
-
 const logo=L.control({position:"topleft"})
 
 logo.onAdd=function(){
   const div=L.DomUtil.create("div")
 
   div.style.marginLeft="55px"
-  div.style.marginTop="-16px"
+  div.style.marginTop="-28px"
 
   div.innerHTML=`
     <img src="Meteor-Symbol-curves-red.png"
@@ -227,7 +222,7 @@ logo.onAdd=function(){
       width:70px;
       opacity:.95;
       pointer-events:none;
-      transform:translateY(-18px);
+      transform:translateY(-24px);
       filter:drop-shadow(0 0 10px rgba(255,0,0,.7));
     ">
   `
