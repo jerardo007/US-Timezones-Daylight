@@ -8,63 +8,96 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-
 html,body{
-height:100%;
-margin:0;
-background:#0b0f14;
+  height:100%;
+  margin:0;
+  background:#191919;
 }
 
 #map{
-width:100%;
-height:100vh;
+  width:100%;
+  height:100vh;
+  background:#191919;
+}
+
+.leaflet-container{
+  background:#191919 !important;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 
 .leaflet-control-attribution{
-display:none;
+  display:none;
 }
 
 .panel{
-background:rgba(20,24,28,.92);
-color:#e8eef7;
-padding:.6rem .8rem;
-border-radius:.75rem;
-box-shadow:0 6px 18px rgba(0,0,0,.35);
-font:14px system-ui;
+  background:rgba(24,24,27,.92);
+  color:#e8eef7;
+  padding:.6rem .8rem;
+  border-radius:.85rem;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+  font:14px system-ui;
+  backdrop-filter:blur(6px);
 }
 
 .clock .row{
-display:flex;
-justify-content:space-between;
-gap:1rem;
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
 }
 
 .legend .row{
-display:flex;
-align-items:center;
-gap:.5rem;
-margin:.25rem 0;
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  margin:.25rem 0;
 }
 
 .chip{
-width:14px;
-height:14px;
-border-radius:3px;
-border:1px solid rgba(255,255,255,.15);
+  width:14px;
+  height:14px;
+  border-radius:3px;
+  border:1px solid rgba(255,255,255,.15);
 }
 
 .credit{
-position:absolute;
-bottom:8px;
-right:10px;
-z-index:400;
-background:rgba(20,24,28,.85);
-color:#a8b3bf;
-padding:4px 8px;
-border-radius:8px;
-font:12px system-ui;
+  position:absolute;
+  bottom:8px;
+  right:10px;
+  z-index:400;
+  background:rgba(24,24,27,.88);
+  color:#a8b3bf;
+  padding:4px 8px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.08);
+  font:12px system-ui;
 }
 
+.credit a{
+  color:#7db7ff;
+  text-decoration:none;
+}
+
+.credit a:hover{
+  text-decoration:underline;
+}
+
+.leaflet-control-zoom a{
+  background:rgba(24,24,27,.92) !important;
+  color:#e8eef7 !important;
+  border-color:rgba(255,255,255,.08) !important;
+}
+
+.leaflet-control-zoom a:hover{
+  background:rgba(36,36,40,.96) !important;
+}
+
+.leaflet-tooltip{
+  background:rgba(24,24,27,.96);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
 </style>
 </head>
 
@@ -73,79 +106,84 @@ font:12px system-ui;
 <div id="map"></div>
 
 <div class="credit">
-Built with <a href="https://leafletjs.com/" target="_blank">Leaflet</a>
+  Built with <a href="https://leafletjs.com/" target="_blank">Leaflet</a>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-
 const map = L.map("map",{zoomControl:true})
 
-const esriDark = L.tileLayer(
-"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-{maxZoom:7,minZoom:2}
+const darkBase = L.tileLayer(
+  "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+  {
+    subdomains:"abcd",
+    maxZoom:20,
+    minZoom:2
+  }
 )
 
-esriDark.addTo(map)
+darkBase.addTo(map)
 
 map.setView([39.5,-98.35],4)
 
 function rect(w,e,s,n){
-return [[s,w],[s,e],[n,e],[n,w],[s,w]]
+  return [[s,w],[s,e],[n,e],[n,w],[s,w]]
 }
 
 const SOUTH=24
 const NORTH=49.5
 
 const zones=[
-
-{name:"Pacific",color:"#fb9a99",poly:rect(-125,-114,SOUTH,NORTH)},
-{name:"Mountain",color:"#fdbf6f",poly:rect(-114,-103.5,SOUTH,NORTH)},
-{name:"Central",color:"#cab2d6",poly:rect(-103.5,-90.5,SOUTH,NORTH)},
-{name:"Eastern",color:"#ffff99",poly:rect(-90.5,-66.9,SOUTH,NORTH)}
-
+  {name:"Pacific",color:"#fb9a99",poly:rect(-125,-114,SOUTH,NORTH)},
+  {name:"Mountain",color:"#fdbf6f",poly:rect(-114,-103.5,SOUTH,NORTH)},
+  {name:"Central",color:"#cab2d6",poly:rect(-103.5,-90.5,SOUTH,NORTH)},
+  {name:"Eastern",color:"#ffff99",poly:rect(-90.5,-66.9,SOUTH,NORTH)}
 ]
 
 zones.forEach(z=>{
-L.polygon(z.poly,{
-color:"#9aa4ad",
-weight:1,
-opacity:.6,
-fillColor:z.color,
-fillOpacity:.28
-})
-.bindTooltip(`<b>${z.name}</b>`)
-.addTo(map)
+  L.polygon(z.poly,{
+    color:"#b8c0c8",
+    weight:1,
+    opacity:.5,
+    fillColor:z.color,
+    fillOpacity:.24
+  })
+  .bindTooltip(`<b>${z.name}</b>`)
+  .addTo(map)
 })
 
 const clock=L.control({position:"topright"})
 
 clock.onAdd=function(){
+  const div=L.DomUtil.create("div","panel clock")
 
-const div=L.DomUtil.create("div","panel clock")
+  div.innerHTML=`
+    <div class="row"><span>ET</span><span id="tET"></span></div>
+    <div class="row"><span>CT</span><span id="tCT"></span></div>
+    <div class="row"><span>MT</span><span id="tMT"></span></div>
+    <div class="row"><span>PT</span><span id="tPT"></span></div>
+  `
 
-div.innerHTML=`
-<div class="row"><span>ET</span><span id="tET"></span></div>
-<div class="row"><span>CT</span><span id="tCT"></span></div>
-<div class="row"><span>MT</span><span id="tMT"></span></div>
-<div class="row"><span>PT</span><span id="tPT"></span></div>
-`
-
-return div
+  return div
 }
 
 clock.addTo(map)
 
 function fmt(tz){
-return new Date().toLocaleTimeString([],{timeZone:tz})
+  return new Date().toLocaleTimeString([],{
+    timeZone:tz,
+    hour:"numeric",
+    minute:"2-digit",
+    second:"2-digit"
+  })
 }
 
 function tick(){
-document.getElementById("tET").textContent=fmt("America/New_York")
-document.getElementById("tCT").textContent=fmt("America/Chicago")
-document.getElementById("tMT").textContent=fmt("America/Denver")
-document.getElementById("tPT").textContent=fmt("America/Los_Angeles")
+  document.getElementById("tET").textContent=fmt("America/New_York")
+  document.getElementById("tCT").textContent=fmt("America/Chicago")
+  document.getElementById("tMT").textContent=fmt("America/Denver")
+  document.getElementById("tPT").textContent=fmt("America/Los_Angeles")
 }
 
 tick()
@@ -154,17 +192,16 @@ setInterval(tick,1000)
 const legend=L.control({position:"bottomleft"})
 
 legend.onAdd=function(){
+  const div=L.DomUtil.create("div","panel legend")
 
-const div=L.DomUtil.create("div","panel legend")
+  div.innerHTML=`
+    <div class="row"><span class="chip" style="background:#fb9a99"></span>Pacific</div>
+    <div class="row"><span class="chip" style="background:#fdbf6f"></span>Mountain</div>
+    <div class="row"><span class="chip" style="background:#cab2d6"></span>Central</div>
+    <div class="row"><span class="chip" style="background:#ffff99"></span>Eastern</div>
+  `
 
-div.innerHTML=`
-<div class="row"><span class="chip" style="background:#fb9a99"></span>Pacific</div>
-<div class="row"><span class="chip" style="background:#fdbf6f"></span>Mountain</div>
-<div class="row"><span class="chip" style="background:#cab2d6"></span>Central</div>
-<div class="row"><span class="chip" style="background:#ffff99"></span>Eastern</div>
-`
-
-return div
+  return div
 }
 
 legend.addTo(map)
@@ -174,27 +211,26 @@ legend.addTo(map)
 const logo=L.control({position:"topleft"})
 
 logo.onAdd=function(){
+  const div=L.DomUtil.create("div")
 
-const div=L.DomUtil.create("div")
+  div.style.marginLeft="55px"
+  div.style.marginTop="0px"
 
-div.style.marginLeft="55px"
-div.style.marginTop="10px"
+  div.innerHTML=`
+    <img src="Meteor-Symbol-curves-red.png"
+    style="
+      width:70px;
+      opacity:.95;
+      pointer-events:none;
+      transform:translateY(-8px);
+      filter:drop-shadow(0 0 10px rgba(255,0,0,.7));
+    ">
+  `
 
-div.innerHTML=`
-<img src="Meteor-Symbol-curves-red.png"
-style="
-width:70px;
-opacity:.9;
-pointer-events:none;
-filter:drop-shadow(0 0 10px rgba(255,0,0,.7));
-">
-`
-
-return div
+  return div
 }
 
 logo.addTo(map)
-
 </script>
 
 </body>
