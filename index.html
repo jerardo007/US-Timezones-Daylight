@@ -1,248 +1,262 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>US Time Zones</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>US Time Zones + Live Daylight</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet CSS (2 sources; either one can load) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" onload="this.rel='stylesheet'">
 
-<style>
-html,body{
-  height:100%;
-  margin:0;
-  background:#191919;
-}
-
-#map{
-  width:100%;
-  height:100vh;
-  background:#191919;
-}
-
-.leaflet-container{
-  background:#191919 !important;
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-}
-
-.leaflet-control-attribution{
-  display:none;
-}
-
-.panel{
-  background:rgba(24,24,27,.92);
-  color:#e8eef7;
-  padding:.6rem .8rem;
-  border-radius:.85rem;
-  box-shadow:0 6px 18px rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.08);
-  font:14px system-ui;
-  backdrop-filter:blur(6px);
-}
-
-.clock .row{
-  display:flex;
-  justify-content:space-between;
-  gap:1rem;
-}
-
-.legend .row{
-  display:flex;
-  align-items:center;
-  gap:.5rem;
-  margin:.25rem 0;
-}
-
-.chip{
-  width:14px;
-  height:14px;
-  border-radius:3px;
-  border:1px solid rgba(255,255,255,.15);
-}
-
-.credit{
-  position:absolute;
-  bottom:8px;
-  right:10px;
-  z-index:400;
-  background:rgba(24,24,27,.88);
-  color:#a8b3bf;
-  padding:4px 8px;
-  border-radius:8px;
-  border:1px solid rgba(255,255,255,.08);
-  font:12px system-ui;
-}
-
-.credit a{
-  color:#7db7ff;
-  text-decoration:none;
-}
-
-.credit a:hover{
-  text-decoration:underline;
-}
-
-.leaflet-control-zoom a{
-  background:rgba(24,24,27,.92) !important;
-  color:#e8eef7 !important;
-  border-color:rgba(255,255,255,.08) !important;
-}
-
-.leaflet-control-zoom a:hover{
-  background:rgba(36,36,40,.96) !important;
-}
-
-.leaflet-tooltip{
-  background:rgba(24,24,27,.96);
-  color:#fff;
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 6px 18px rgba(0,0,0,.35);
-}
-</style>
+  <style>
+    html, body { height: 100%; margin: 0; background:#0b0f14; }
+    #map { width: 100%; height: 100vh; }
+    .leaflet-control.attribution { display:none; }
+    .panel { background: rgba(20,24,28,.92); color:#e8eef7; padding:.6rem .8rem; border-radius:.75rem; box-shadow:0 6px 18px rgba(0,0,0,.35); font:14px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .legend h4 { margin:0 0 .5rem; font-size:14px; }
+    .legend .row { display:flex; align-items:center; gap:.5rem; margin:.25rem 0; }
+    .chip { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255,255,255,.15); }
+    .clock h4 { margin:0 0 .4rem; font-weight:600; font-size:14px; opacity:.9; }
+    .clock .row { display:flex; justify-content:space-between; gap:1rem; }
+    .toggle label { display:block; margin:.18rem 0; }
+    .status { position:absolute; top:8px; left:10px; z-index: 401; display:none; }
+    .status.show { display:block; }
+    .status .msg { background: rgba(255,80,80,.1); color:#ff9a9a; border:1px solid rgba(255,80,80,.35); padding:6px 10px; border-radius:8px; }
+    .credit { position: absolute; bottom: 8px; right: 10px; z-index: 400; background: rgba(20,24,28,.85); color:#a8b3bf; padding: 4px 8px; border-radius: 8px; font: 12px/1.2 system-ui; }
+    .credit a { color:#8ab4f8; text-decoration:none; }
+  </style>
 </head>
-
 <body>
+  <div id="map" role="application" aria-label="Interactive map of US time zones with live daylight overlay"></div>
+  <div class="credit">Built with <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a></div>
+  <div id="status" class="status" aria-live="polite"><div class="msg" id="statusMsg"></div></div>
 
-<div id="map"></div>
+  <!-- Leaflet JS loader with fallbacks -->
+  <script>
+    (function loadLeafletSeq() {
+      const sources = [
+        "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js",
+        "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+      ];
+      let i = 0;
+      function next() {
+        if (window.L && typeof L.map === "function") return initApp();
+        if (i >= sources.length) return showStatus("Could not load Leaflet from any CDN.", true);
+        const s = document.createElement("script");
+        s.src = sources[i++];
+        s.onload = () => initApp();
+        s.onerror = () => next();
+        document.head.appendChild(s);
+      }
+      next();
+    })();
 
-<div class="credit">
-  Built with <a href="https://leafletjs.com/" target="_blank">Leaflet</a>
-</div>
+    function showStatus(msg, isError) {
+      const box = document.getElementById("status");
+      const msgEl = document.getElementById("statusMsg");
+      msgEl.textContent = msg;
+      box.className = "status show";
+      if (!isError) {
+        msgEl.style.background = "rgba(80,180,255,.1)";
+        msgEl.style.color = "#a8d1ff";
+        msgEl.style.borderColor = "rgba(80,180,255,.35)";
+      }
+    }
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    function initApp() {
+      // ---------- Base map & fail-safe basemap cycle ----------
+      const map = L.map('map', { zoomControl: true, worldCopyJump: true });
 
-<script>
-const map = L.map("map",{zoomControl:true})
+      // 4 reliable basemaps (rotate if one fails)
+      const PROVIDERS = [
+        { key:"OSM Light", layer: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 7, minZoom: 2, attribution: '&copy; OpenStreetMap' }) },
+        { key:"Esri Light Gray", layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 7, minZoom: 2, attribution: 'Tiles &copy; Esri' }) },
+        { key:"Carto Light", layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 7, minZoom: 2, subdomains:'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO' }) },
+        { key:"Esri Dark Gray", layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 7, minZoom: 2, attribution: 'Tiles &copy; Esri' }) }
+      ];
 
-const darkBase = L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-  {
-    subdomains:"abcd",
-    maxZoom:20,
-    minZoom:2,
-    opacity:1
-  }
-)
+      let activeIdx = 0;
+      function useProvider(idx, reason) {
+        // Remove all
+        PROVIDERS.forEach(p => map.removeLayer(p.layer));
+        activeIdx = idx;
+        const prov = PROVIDERS[idx];
+        prov.layer.addTo(map);
 
-darkBase.addTo(map)
+        // Watchdog: if tiles don't load or error, switch to next provider
+        let loaded = 0, errors = 0;
+        const onLoad = () => loaded++;
+        const onErr = () => { errors++; if (errors >= 2) fallback("tile errors"); };
+        function fallback(cause) {
+          prov.layer.off('tileload', onLoad).off('tileerror', onErr);
+          const nextIdx = (idx + 1) % PROVIDERS.length;
+          if (nextIdx === idx) return showStatus("All basemaps blocked. Check network/ad-block.", true);
+          showStatus(`Switched basemap → ${PROVIDERS[nextIdx].key} (${cause})`);
+          useProvider(nextIdx, cause);
+        }
+        prov.layer.on('tileload', onLoad);
+        prov.layer.on('tileerror', onErr);
+        // If basically nothing loaded after 2s, fallback
+        setTimeout(() => { if (loaded < 2) fallback("no tiles loaded"); }, 2000);
+      }
 
-map.setView([39.5,-98.35],4)
+      // Start on the safest (OSM Light)
+      useProvider(0);
 
-function rect(w,e,s,n){
-  return [[s,w],[s,e],[n,e],[n,w],[s,w]]
-}
+      map.setView([39.5, -98.35], 4); // USA center
 
-const SOUTH=24
-const NORTH=49.5
+      // ---------- Time zone polygons (clean rectangular bands) ----------
+      function rectPoly(west, east, south, north) {
+        return [ [south, west], [south, east], [north, east], [north, west], [south, west] ];
+      }
+      const SOUTH = 24.0, NORTH = 49.5; // CONUS band
+      const zones = [
+        { key: 'HST', name: 'Hawaii–Aleutian', tz: 'Pacific/Honolulu', color: '#a6cee3', poly: rectPoly(-161.0, -154.5, 18.5, 22.7) },
+        { key: 'AKST', name: 'Alaska', tz: 'America/Anchorage', color: '#b2df8a', poly: rectPoly(-170.0, -141.0, 51.0, 71.5) },
+        { key: 'PT',  name: 'Pacific', tz: 'America/Los_Angeles', color: '#fb9a99', poly: rectPoly(-125.0, -113.9, SOUTH, NORTH) },
+        { key: 'MT',  name: 'Mountain', tz: 'America/Denver', color: '#fdbf6f', poly: rectPoly(-114.0, -103.5, SOUTH, NORTH) },
+        { key: 'CT',  name: 'Central', tz: 'America/Chicago', color: '#cab2d6', poly: rectPoly(-103.5, -90.5,  SOUTH, NORTH) },
+        { key: 'ET',  name: 'Eastern', tz: 'America/New_York', color: '#ffff99', poly: rectPoly(-90.5,  -66.9,  SOUTH, NORTH) }
+      ];
 
-/* DARKEN THE WHOLE MAP WITHOUT DESTROYING LAND DETAIL */
-L.rectangle(
-  [[-85,-180],[85,180]],
-  {
-    stroke:false,
-    fillColor:"#191919",
-    fillOpacity:0.36,
-    interactive:false
-  }
-).addTo(map)
+      const tzLayer = L.layerGroup();
+      zones.forEach(z => {
+        const g = L.polygon(z.poly, { color: '#9aa4ad', weight: 1, opacity: 0.6, fillColor: z.color, fillOpacity: 0.28 }).addTo(tzLayer);
+        g.bindTooltip(`<b>${z.name}</b><br>${z.key} — ${z.tz}`, { sticky: true });
+      });
+      tzLayer.addTo(map);
 
-const zones=[
-  {name:"Pacific",color:"#fb9a99",poly:rect(-125,-114,SOUTH,NORTH)},
-  {name:"Mountain",color:"#fdbf6f",poly:rect(-114,-103.5,SOUTH,NORTH)},
-  {name:"Central",color:"#cab2d6",poly:rect(-103.5,-90.5,SOUTH,NORTH)},
-  {name:"Eastern",color:"#ffff99",poly:rect(-90.5,-66.9,SOUTH,NORTH)}
-]
+      const group = L.featureGroup([
+        L.polygon(zones[2].poly), L.polygon(zones[3].poly),
+        L.polygon(zones[4].poly), L.polygon(zones[5].poly),
+        L.polygon(zones[1].poly), L.polygon(zones[0].poly)
+      ]);
+      map.fitBounds(group.getBounds().pad(0.15));
 
-zones.forEach(z=>{
-  L.polygon(z.poly,{
-    color:"#b8c0c8",
-    weight:1,
-    opacity:.5,
-    fillColor:z.color,
-    fillOpacity:.24
-  })
-  .bindTooltip(`<b>${z.name}</b>`)
-  .addTo(map)
-})
+      // ---------- Live clocks ----------
+      const clock = L.control({ position: 'topright' });
+      clock.onAdd = function() {
+        const div = L.DomUtil.create('div', 'panel clock');
+        div.innerHTML = `
+          <h4>Current Time</h4>
+          <div class="row"><span>ET</span><span id="tET">—</span></div>
+          <div class="row"><span>CT</span><span id="tCT">—</span></div>
+          <div class="row"><span>MT</span><span id="tMT">—</span></div>
+          <div class="row"><span>PT</span><span id="tPT">—</span></div>
+          <div class="row"><span>AK</span><span id="tAK">—</span></div>
+          <div class="row"><span>HI</span><span id="tHI">—</span></div>
+        `;
+        return div;
+      };
+      clock.addTo(map);
 
-const clock=L.control({position:"topright"})
+      function fmt(tz) {
+        try {
+          return new Date().toLocaleString(undefined, { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        } catch(e) { return '—'; }
+      }
+      function tick() {
+        document.getElementById('tET').textContent = fmt('America/New_York');
+        document.getElementById('tCT').textContent = fmt('America/Chicago');
+        document.getElementById('tMT').textContent = fmt('America/Denver');
+        document.getElementById('tPT').textContent = fmt('America/Los_Angeles');
+        document.getElementById('tAK').textContent = fmt('America/Anchorage');
+        document.getElementById('tHI').textContent = fmt('Pacific/Honolulu');
+      }
+      tick(); setInterval(tick, 1000);
 
-clock.onAdd=function(){
-  const div=L.DomUtil.create("div","panel clock")
+      // ---------- Legend ----------
+      const legend = L.control({ position: 'bottomleft' });
+      legend.onAdd = function() {
+        const div = L.DomUtil.create('div', 'panel legend');
+        div.innerHTML = `
+          <h4>US Time Zones</h4>
+          ${zones.map(z => `<div class="row"><span class="chip" style="background:${z.color}"></span> ${z.name} (${z.key})</div>`).join('')}
+          <div class="row" style="margin-top:.35rem"><span class="chip" style="background:#000; opacity:.6"></span> Nighttime (dynamic)</div>
+        `;
+        return div;
+      };
+      legend.addTo(map);
 
-  div.innerHTML=`
-    <div class="row"><span>ET</span><span id="tET"></span></div>
-    <div class="row"><span>CT</span><span id="tCT"></span></div>
-    <div class="row"><span>MT</span><span id="tMT"></span></div>
-    <div class="row"><span>PT</span><span id="tPT"></span></div>
-  `
+      // ---------- Controls (layers + basemap selector) ----------
+      const toggle = L.control({ position: 'topleft' });
+      toggle.onAdd = function() {
+        const div = L.DomUtil.create('div', 'panel toggle');
+        div.innerHTML = `
+          <div style="margin-bottom:.3rem; font-weight:600; opacity:.9">Layers</div>
+          <label><input type="checkbox" id="cbZones" checked> Time Zones</label>
+          <label><input type="checkbox" id="cbDaylight" checked> Daylight</label>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,.1); margin:.4rem 0" />
+          <div style="margin-bottom:.2rem; opacity:.8">Basemap</div>
+          <label><input type="radio" name="bm" id="bm0" checked> OSM Light</label>
+          <label><input type="radio" name="bm" id="bm1"> Esri Light Gray</label>
+          <label><input type="radio" name="bm" id="bm2"> Carto Light</label>
+          <label><input type="radio" name="bm" id="bm3"> Esri Dark Gray</label>
+        `;
+        return div;
+      };
+      toggle.addTo(map);
 
-  return div
-}
+      // Wire up layer toggles
+      setTimeout(() => {
+        const cbZones = document.getElementById('cbZones');
+        const cbDay = document.getElementById('cbDaylight');
+        cbZones.addEventListener('change', () => { if (cbZones.checked) tzLayer.addTo(map); else map.removeLayer(tzLayer); });
+        // Basemap radios
+        [...Array(4).keys()].forEach(idx => {
+          const el = document.getElementById(`bm${idx}`);
+          el.addEventListener('change', () => {
+            if (el.checked) useProvider(idx);
+          });
+        });
+        // Daylight wired below after plugin attempt
+      }, 0);
 
-clock.addTo(map)
+      // ---------- Day/Night Terminator (best effort; map still works if blocked) ----------
+      (function loadTerminator() {
+        const srcs = [
+          "https://unpkg.com/@joergdietrich/leaflet.terminator",
+          "https://cdn.jsdelivr.net/npm/@joergdietrich/leaflet.terminator/L.Terminator.js"
+        ];
+        let k = 0, done = false;
+        function tryInit() {
+          if (typeof L.terminator === 'function') {
+            const terminator = L.terminator({ fillOpacity: 0.6, color: '#000', fillColor: '#000', weight: 0, interactive: false });
+            terminator.addTo(map);
+            setInterval(() => terminator.setTime(), 60 * 1000);
+            const cbDay = document.getElementById('cbDaylight');
+            cbDay.addEventListener('change', () => {
+              if (cbDay.checked) terminator.addTo(map); else map.removeLayer(terminator);
+            });
+            return true;
+          }
+          return false;
+        }
+        function next() {
+          if (done) return;
+          if (tryInit()) { done = true; return showStatus("Daylight overlay active"); }
+          if (k >= srcs.length) { 
+            const cbDay = document.getElementById('cbDaylight');
+            cbDay.checked = false; cbDay.disabled = true;
+            return showStatus("Daylight overlay unavailable (plugin blocked).", true);
+          }
+          const s = document.createElement("script");
+          s.src = srcs[k++]; s.onload = () => { if (!tryInit()) next(); };
+          s.onerror = () => next();
+          document.head.appendChild(s);
+        }
+        next();
+      })();
 
-function fmt(tz){
-  return new Date().toLocaleTimeString([],{
-    timeZone:tz,
-    hour:"numeric",
-    minute:"2-digit",
-    second:"2-digit"
-  })
-}
+      // ---------- Safety: fix size after first paint ----------
+      setTimeout(() => map.invalidateSize(), 300);
+    }
 
-function tick(){
-  document.getElementById("tET").textContent=fmt("America/New_York")
-  document.getElementById("tCT").textContent=fmt("America/Chicago")
-  document.getElementById("tMT").textContent=fmt("America/Denver")
-  document.getElementById("tPT").textContent=fmt("America/Los_Angeles")
-}
-
-tick()
-setInterval(tick,1000)
-
-const legend=L.control({position:"bottomleft"})
-
-legend.onAdd=function(){
-  const div=L.DomUtil.create("div","panel legend")
-
-  div.innerHTML=`
-    <div class="row"><span class="chip" style="background:#fb9a99"></span>Pacific</div>
-    <div class="row"><span class="chip" style="background:#fdbf6f"></span>Mountain</div>
-    <div class="row"><span class="chip" style="background:#cab2d6"></span>Central</div>
-    <div class="row"><span class="chip" style="background:#ffff99"></span>Eastern</div>
-  `
-
-  return div
-}
-
-legend.addTo(map)
-
-/* LOGO */
-const logo=L.control({position:"topleft"})
-
-logo.onAdd=function(){
-  const div=L.DomUtil.create("div")
-
-  div.style.marginLeft="55px"
-  div.style.marginTop="-42px"
-
-  div.innerHTML=`
-    <img src="Meteor-Symbol-curves-red.png"
-    style="
-      width:70px;
-      opacity:.95;
-      pointer-events:none;
-      transform:translateY(-34px);
-      filter:drop-shadow(0 0 10px rgba(255,0,0,.7));
-    ">
-  `
-
-  return div
-}
-
-logo.addTo(map)
-</script>
-
+    // Global runtime error catcher
+    window.addEventListener('error', (e) => showStatus(`Runtime error: ${e.message}`, true));
+    window.addEventListener('unhandledrejection', (e) => showStatus(`Promise error: ${(e.reason && e.reason.message) || e.reason}`, true));
+  </script>
 </body>
 </html>
